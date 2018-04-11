@@ -32,7 +32,7 @@
         </section>
         <section>
             <h3>Que es?</h3>
-            <p>App para Django para crear poderosas APIs REST.</p>
+            <p>App para Django para crear poderosas APIs REST</p>
         </section>
         <section>
             <h3>Ventajas</h3>
@@ -102,6 +102,50 @@
             </code></pre>
         </section>
         <section>
+            <h3>Serializer b&aacute;sico</h3>
+            api/serializers.py
+            <pre><code data-trim data-noescaoe>
+                from django.contrib.auth.models import User
+                from rest_framework import serializers
+
+                from api.models import Post
+
+
+                class UserSerializer(serializers.Serializer):
+                    pk = serializers.IntegerField(read_only=True)
+                    username = serializers.CharField(max_length=120, required=True, allow_blank=False)
+                    email = serializers.EmailField(required=True, allow_blank=False)
+                    date_joined = serializers.DateTimeField(required=False, read_only=True)
+
+                    def create(self, validated_data):
+                        return User.objects.create(**validated_data)
+
+                    def update(self, instance, validated_data):
+                        instance.username = validated_data.get('username', instance.username)
+                        instance.email = validated_data.get('email', instance.email)
+                        instance.save()
+                        return instance
+
+
+                class PostSerializer(serializers.Serializer):
+                    pk = serializers.IntegerField(read_only=True)
+                    title = serializers.CharField(max_length=60)
+                    body = serializers.CharField(max_length=240)
+                    date_created = serializers.DateTimeField(read_only=True)
+                    date_modified = serializers.DateTimeField(read_only=True)
+
+                    def create(self, validated_data):
+                        return Post.objects.create(**validated_data)
+
+                    def update(self, instance, validated_data):
+                        instance.title = validated_data.get('title', instance.title)
+                        instance.body = validated_data.get('body', instance.body)
+                        instance.save()
+                        return instance
+            </code></pre>
+        </section>
+        <section>
+            <h3>Usando ModelSerializer</h3>
             api/serializers.py
             <pre><code data-trim data-noescaoe>
                 from django.contrib.auth.models import User
