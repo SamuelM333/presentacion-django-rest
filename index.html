@@ -22,18 +22,276 @@
 <body>
 <div class="reveal">
     <div class="slides">
-        <!--<section data-markdown>-->
-            <!--<textarea data-template>-->
-                <!--### Django REST framework-->
-                <!--#### Conceptos básicos-->
-            <!--</textarea>-->
-        <!--</section>-->
         <section>
             <h3>Django REST framework <br>
-                <small>Conceptos básicos</small>
+                <small>Conceptos b&aacute;sicos</small>
             </h3>
+            <h4>
+                <small>Samuel Murillo</small>
+            </h4>
         </section>
-        <section>Slide 2</section>
+        <section>
+            <h3>Que es?</h3>
+            <p>App para Django para crear poderosas APIs REST.</p>
+        </section>
+        <section>
+            <h3>Ventajas</h3>
+            <ul>
+                <li>Basado en Django</li>
+                <li>&Uacute;til para escribir Business Logic</li>
+                <li>Usado globalmente</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Desventajas</h3>
+            <ul>
+                <li>No muy bueno proyectos peque&ntilde;os</li>
+                <li>Requiere m&aacute;s setup</li>
+                <li>No permite uso de NoSQL DBs</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Arquitectura</h3>
+            <ol>
+                <li>Models</li>
+                <li>Serializers</li>
+                <li>Views</li>
+                <li>Urls</li>
+            </ol>
+        </section>
+        <section>
+            <h3>Installaci&oacute;n y Setup</h3>
+            <pre><code data-trim data-noescaoe>
+                pip install djangorestframework
+                django-admin startproject blog
+                cd blog
+                python manage.py startapp api
+            </code></pre>
+            <div>
+                blog/settings.py
+                <pre><code data-trim data-noescaoe>
+                INSTALLED_APPS = (
+                    ...
+                    'rest_framework',
+                    'api',
+                )
+                </code></pre>
+            </div>
+        </section>
+        <section>
+            <pre><code data-trim data-noescaoe>
+                python manage.py makemigrations
+                python manage.py migrate
+                python manage.py createsuperuser
+            </code></pre>
+        </section>
+        <section>
+            api/models.py
+            <pre><code data-trim data-noescaoe>
+            from django.db import models
+            from django.contrib.auth.models import User
+
+
+            class Post(models.Model):
+                user = models.OneToOneField(User, on_delete=models.CASCADE)
+                title = models.CharField('Title', max_length=60)
+                body = models.CharField('Body', max_length=240)
+                date_created = models.DateTimeField(auto_now_add=True)
+                date_modified = models.DateTimeField(auto_now=True)
+
+            </code></pre>
+        </section>
+        <section>
+            api/serializers.py
+            <pre><code data-trim data-noescaoe>
+                from django.contrib.auth.models import User
+                from rest_framework.serializers import ModelSerializer
+
+                from api.models import Post
+
+
+                class UserSerializer(ModelSerializer):
+                    class Meta:
+                        model = User
+                        fields = ('id', 'username', 'email', 'date_joined')
+
+
+                class PostSerializer(ModelSerializer):
+                    class Meta:
+                        model = Post
+                        fields = '__all__'
+            </code></pre>
+        </section>
+        <section>
+            <h3>Usando APIView</h3>
+            api/views.py
+            <pre><code data-trim data-noescaoe>
+            from django.contrib.auth.models import User
+            from django.shortcuts import get_object_or_404
+            from rest_framework import status
+            from rest_framework.views import APIView
+            from rest_framework.response import Response
+
+            from api.models import Post
+            from api.serializers import UserSerializer, PostSerializer
+
+
+            class UserListView(APIView):
+                def get(self, request):
+                    users = User.objects.all().order_by('-date_joined')
+                    serializer = UserSerializer(users, many=True)
+                    return Response(data=serializer.data)
+
+                def post(self, request):
+                    serializer = UserSerializer(data=request.data)
+
+                    if serializer.is_valid():
+                        serializer.save()
+                        return Response(data=serializer.validated_data, status=status.HTTP_201_CREATED)
+                    else:
+                        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+            class UserDetailsView(APIView):
+                def get(self, request, pk):
+                    user = get_object_or_404(User, pk=pk)
+                    serializer = UserSerializer(user)
+                    return Response(data=serializer.data)
+
+                def put(self, request, pk):
+                    user = get_object_or_404(User, pk=pk)
+                    serializer = UserSerializer(user, data=request.data)
+                    if serializer.is_valid():
+                        serializer.save()
+                        return Response(serializer.data)
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                def delete(self, request, pk):
+                    user = get_object_or_404(User, pk=pk)
+                    user.delete()
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+            class PostListView(APIView):
+                def get(self, request):
+                    posts = Post.objects.all().order_by('-date_created')
+                    serializer = PostSerializer(posts, many=True)
+                    return Response(data=serializer.data)
+
+                def post(self, request):
+                    serializer = PostSerializer(data=request.data)
+
+                    if serializer.is_valid():
+                        serializer.save()
+                        return Response(data=serializer.validated_data, status=status.HTTP_201_CREATED)
+                    else:
+                        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+            class PostDetailsView(APIView):
+                def get(self, request, pk):
+                    post = get_object_or_404(User, pk=pk)
+                    serializer = PostSerializer(post)
+                    return Response(data=serializer.data)
+
+                def put(self, request, pk):
+                    post = get_object_or_404(User, pk=pk)
+                    serializer = PostSerializer(post, data=request.data)
+                    if serializer.is_valid():
+                        serializer.save()
+                        return Response(serializer.data)
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                def delete(self, request, pk):
+                    post = get_object_or_404(User, pk=pk)
+                    post.delete()
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+
+            </code></pre>
+        </section>
+        <section>
+            blog/urls.py
+            <pre><code data-trim data-noescaoe>
+                from django.conf.urls import include, url
+
+                urlpatterns = [
+                    url(r'^api/', include(('api.urls', 'api'), namespace='api')),
+                ]
+            </code></pre>
+        </section>
+        <section>
+            api/urls.py
+            <pre><code data-trim data-noescaoe>
+                from django.conf.urls import include, url
+
+                urlpatterns = [
+                    url(r'^user/$', views.UserListView.as_view()),
+                    url(r'^user/(?P&lt;pk&gt;[0-9]+)/$', views.UserDetailsView.as_view()),
+                    url(r'^post/$', views.PostListView.as_view()),
+                    url(r'^post/(?P&lt;pk&gt;[0-9]+)/$', views.PostDetailsView.as_view()),
+                    url(r'^api-auth/', include('rest_framework.urls'))
+                ]
+            </code></pre>
+        </section>
+        <section>
+            <pre><code data-trim data-noescaoe>
+                python manage.py makemigrations
+                python manage.py migrate
+                python manage.py runserver
+            </code></pre>
+        </section>
+        <section>
+            <h3>Usando ModelViewSet</h3>
+            api/views.py
+            <pre><code data-trim data-noescaoe>
+                from django.contrib.auth.models import User
+                from rest_framework.viewsets import ModelViewSet
+
+                from api.models import Post
+                from api.serializers import UserSerializer, PostSerializer
+
+
+                class UserViewSet(ModelViewSet):
+                    queryset = User.objects.all().order_by('-date_joined')
+                    serializer_class = UserSerializer
+
+
+                class PostViewSet(ModelViewSet):
+                    queryset = Post.objects.all().order_by('-date_created')
+                    serializer_class = PostSerializer
+            </code></pre>
+        </section>
+        <section>
+            api/urls.py
+            <pre><code data-trim data-noescaoe>
+                from django.conf.urls import url, include
+                from rest_framework import routers
+
+                from api import views
+
+                router = routers.DefaultRouter()
+                router.register(r'user', views.UserViewSet)
+                router.register(r'post', views.PostViewSet)
+
+                urlpatterns = [
+                    url(r'^', include(router.urls)),
+                    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+                ]
+
+            </code></pre>
+        </section>
+        <section>
+            blog/urls.py
+            <pre><code data-trim data-noescaoe>
+                from django.conf.urls import include, url
+
+                from api.urls import router
+
+                urlpatterns = [
+                    url(r'^api/', include((router.urls, 'api'), namespace='api')),
+                ]
+            </code></pre>
+        </section>
     </div>
 </div>
 <!--[if lte IE 9]>
