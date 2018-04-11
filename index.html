@@ -161,6 +161,7 @@
 
 
                 class PostSerializer(ModelSerializer):
+                    user = UserSerializer(read_only=True)
                     class Meta:
                         model = Post
                         fields = '__all__'
@@ -373,6 +374,133 @@
                     url(r'^api/', include((router.urls, 'api'), namespace='api')),
                 ]
             </code></pre>
+        </section>
+        <section>
+            <h3>Permisolog&iacute;a</h3>
+            api/views.py
+            <pre><code data-trim data-noescaoe>
+                from django.contrib.auth.models import User
+                from rest_framework.permissions import IsAuthenticatedOrReadOnly
+                from rest_framework.viewsets import ModelViewSet
+
+                from api.models import Post
+                from api.serializers import UserSerializer, PostSerializer
+
+
+                class UserViewSet(ModelViewSet):
+                    permission_classes = (IsAuthenticatedOrReadOnly,)
+                    queryset = User.objects.all().order_by('-date_joined')
+                    serializer_class = UserSerializer
+
+
+                class PostViewSet(ModelViewSet):
+                    permission_classes = (IsAuthenticatedOrReadOnly,)
+                    queryset = Post.objects.all().order_by('-date_created')
+                    serializer_class = PostSerializer
+
+            </code></pre>
+        </section>
+        <section>
+            <h3>Permisolog&iacute;a personalizada</h3>
+            api/permissions.py
+            <pre><code data-trim data-noescaoe>
+                from rest_framework import permissions
+
+
+                class IsOwnerOrReadOnly(permissions.BasePermission):
+
+                    def has_object_permission(self, request, view, obj):
+                        if request.method in permissions.SAFE_METHODS:
+                            return True
+
+                        return obj.user == request.user
+            </code></pre>
+        </section>
+        <section>
+            api/views.py
+            <pre><code data-trim data-noescaoe>
+                ...
+                from api.permissions import IsOwnerOrReadOnly
+
+                class PostViewSet(ModelViewSet):
+                    permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
+                    queryset = Post.objects.all().order_by('-date_created')
+                    serializer_class = PostSerializer
+            </code></pre>
+        </section>
+        <section>
+            <h3>Autenticaci&oacute;n</h3>
+            <ul>
+                <li>BasicAuth</li>
+                <li>OAuth2</li>
+            </ul>
+        </section>
+        <section>
+            <h3>OAuth2</h3>
+            <pre><code data-trim data-noescaoe>
+                pip install django-oauth-toolkit
+            </code></pre>
+            blog/settings.py
+            <pre><code data-trim data-noescaoe>
+                INSTALLED_APPS = (
+                    ...
+                    'oauth2_provider',
+                )
+
+                REST_FRAMEWORK = {
+                    'DEFAULT_AUTHENTICATION_CLASSES': (
+                        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+                    )
+                }
+            </code></pre>
+            <pre><code data-trim data-noescaoe>
+                python manage.py migrate
+            </code></pre>
+        </section>
+        <section>
+            blog/urls.py
+            <pre><code data-trim data-noescaoe>
+                urlpatterns = [
+                    ...
+                    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+                ]
+            </code></pre>
+        </section>
+        <section>
+            <pre><code data-trim data-noescaoe>
+                localhost:8000/o/applications/register/
+            </code></pre>
+            <ul>
+                <li>Name: api</li>
+                <li>Client type: Public</li>
+                <li>Authorization grant type: Resource owner password-based</li>
+            </ul>
+        </section>
+        <section>
+            <pre><code data-trim data-noescaoe>
+            curl -X POST -d "grant_type=password&username=&lt;user_name&gt;&password=&lt;password&gt;" -u"&lt;client_id&gt;:&lt;client_secret&gt;" http://localhost:8000/o/token/
+            </code></pre>
+            <pre><code data-trim data-noescaoe>
+                {
+                    "access_token": "vXFKz5HWHABdYzy2tXIyiMzjM76SSs",
+                    "expires_in": 36000,
+                    "token_type": "Bearer",
+                    "scope": "read write",
+                    "refresh_token": "VUwBrddcByfxPzmhumuEGXQtKoH7EK"
+                }
+            </code></pre>
+            <pre><code data-trim data-noescaoe>
+            curl -H "Authorization: Bearer &lt;access_token&gt;" http://localhost:8000/user/
+            </code></pre>
+        </section>
+        <section>
+            <a href="https://www.getpostman.com/" target="_blank">Postman</a>
+            <br>
+            <a href="http://www.django-rest-framework.org/tutorial/1-serialization/"
+               target="_blank">Tutorial de DRF</a>
+            <br>
+            <a href="https://django-oauth-toolkit.readthedocs.io/en/latest/index.html"
+               target="_blank">Django OAuth Toolkit Documentation</a>
         </section>
     </div>
 </div>
