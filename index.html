@@ -285,6 +285,43 @@
             </code></pre>
         </section>
         <section>
+            <h3>Usando ViewSet</h3>
+            api/views.py
+            <pre><code data-trim data-noescaoe>
+                from django.contrib.auth.models import User
+                from django.shortcuts import get_object_or_404
+                from rest_framework.viewsets import ViewSet
+                from rest_framework.response import Response
+
+                from api.models import Post
+                from api.serializers import UserSerializer, PostSerializer
+
+
+                class UserViewSet(ViewSet):
+                    def list(self, request):
+                        queryset = User.objects.all()
+                        serializer = UserSerializer(queryset, many=True)
+                        return Response(serializer.data)
+
+                    def retrieve(self, request, pk=None):
+                        user = get_object_or_404(User, pk=pk)
+                        serializer = UserSerializer(user)
+                        return Response(serializer.data)
+
+
+                class PostViewSet(ViewSet):
+                    def list(self, request):
+                        queryset = Post.objects.all()
+                        serializer = PostSerializer(queryset, many=True)
+                        return Response(serializer.data)
+
+                    def retrieve(self, request, pk=None):
+                        post = get_object_or_404(Post, pk=pk)
+                        serializer = PostSerializer(post)
+                        return Response(serializer.data)
+            </code></pre>
+        </section>
+        <section>
             <h3>Usando ModelViewSet</h3>
             api/views.py
             <pre><code data-trim data-noescaoe>
@@ -306,6 +343,7 @@
             </code></pre>
         </section>
         <section>
+            <h3>Usando un router</h3>
             api/urls.py
             <pre><code data-trim data-noescaoe>
                 from django.conf.urls import url, include
